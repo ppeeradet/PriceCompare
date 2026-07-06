@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculate Best Value — Unit Price Comparison</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FAF8F3;
+    --paper-2:#F2EEE4;
+    --ink:#22261F;
+    --ink-soft:#6B6A5F;
+    --line:#E3DFD1;
+    --teal:#0D7A6C;
+    --teal-soft:#E3F1EC;
+    --amber:#C1791F;
+    --amber-soft:#FBEFDD;
+    --rose:#B6473F;
+    --rose-soft:#F7E9E6;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;overflow:hidden;height:100%;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Sarabun',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    height:100dvh;
+    display:flex;
+    flex-direction:column;
+  }
+  .wrap{
+    max-width:640px;width:100%;margin:0 auto;
+    height:100%;
+    display:flex;flex-direction:column;
+    padding:14px 12px 10px;
+    min-height:0;
+  }
+  .scroll-area{
+    flex:1 1 auto;min-height:0;overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  /* header */
+  header{margin-bottom:12px;}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:5px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;font-weight:700;letter-spacing:.06em;
+    color:#fff;
+    background:var(--teal);
+    padding:4px 10px;border-radius:999px;
+    margin-bottom:7px;
+  }
+  h1{
+    font-size:23px;font-weight:800;line-height:1.15;margin:0 0 4px;
+    letter-spacing:-.015em;
+  }
+  h1 .accent{color:var(--teal);}
+  p.sub{color:var(--ink-soft);font-size:12.5px;margin:0;line-height:1.45;font-weight:500;}
+
+  .lang-switch{
+    display:inline-flex;background:var(--paper-2);border-radius:999px;padding:2px;
+    flex-shrink:0;
+  }
+  .lang-switch button{
+    font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:700;
+    border:none;background:transparent;color:var(--ink-soft);
+    padding:5px 10px;border-radius:999px;cursor:pointer;
+  }
+  .lang-switch button.active{background:var(--ink);color:#fff;}
+
+  /* item table */
+  .items{
+    background:#fff;border:1px solid var(--line);border-radius:var(--radius);
+    padding:10px 8px 6px;margin-bottom:10px;
+    overflow:hidden;
+  }
+  .col-heads{
+    display:grid;
+    grid-template-columns:18px minmax(0,1.5fr) minmax(0,0.85fr) minmax(0,0.85fr) minmax(0,0.7fr) minmax(0,0.95fr) 16px;
+    gap:4px;padding:0 2px 6px;
+  }
+  .col-heads span{
+    font-size:9.5px;color:var(--ink-soft);font-weight:600;
+    text-transform:uppercase;letter-spacing:.01em;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .col-heads span.num{text-align:right;}
+
+  .item-row{
+    display:grid;
+    grid-template-columns:18px minmax(0,1.5fr) minmax(0,0.85fr) minmax(0,0.85fr) minmax(0,0.7fr) minmax(0,0.95fr) 16px;
+    gap:4px;align-items:center;
+    padding:6px 2px;border-top:1px solid var(--line);
+    border-radius:8px;
+  }
+  .item-row.is-best{background:var(--teal-soft);}
+  .item-row:first-of-type{border-top:none;}
+  .dot{
+    width:18px;height:18px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:9.5px;
+    color:#fff;flex-shrink:0;
+  }
+  input[type=text],input[type=number]{
+    width:100%;border:1px solid var(--line);border-radius:7px;
+    padding:6px 5px;font-size:12.5px;font-family:'Sarabun',sans-serif;
+    color:var(--ink);background:var(--paper);
+    outline:none;transition:border-color .15s ease, background .15s ease;
+    min-width:0;
+  }
+  input[type=number]{font-family:'IBM Plex Mono',monospace;font-size:12px;text-align:right;padding-right:5px;}
+  input:focus{border-color:var(--teal);background:#fff;}
+  .up-cell{
+    display:flex;align-items:center;justify-content:flex-end;gap:2px;min-width:0;
+  }
+  .up-readout{
+    font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:11.5px;
+    text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    min-width:0;
+  }
+  .win-icon{
+    font-size:15px;flex-shrink:0;line-height:1;
+    filter:drop-shadow(0 0 2px rgba(193,121,31,.55));
+  }
+  .item-row.is-best .dot{box-shadow:0 0 0 2px #F5C451;}
+  .rm-btn{
+    background:none;border:none;color:var(--ink-soft);
+    font-size:13px;cursor:pointer;line-height:1;padding:1px;border-radius:5px;
+    justify-self:center;
+  }
+  .rm-btn:hover{background:var(--paper-2);color:var(--rose);}
+  .rm-spacer{width:16px;}
+
+  /* add button */
+  .add-card{
+    border:none;border-top:1px dashed var(--line);
+    background:transparent;
+    color:var(--ink-soft);
+    padding:9px 4px 3px;
+    display:flex;align-items:center;justify-content:center;gap:7px;
+    font-size:13px;font-weight:600;cursor:pointer;width:100%;
+    font-family:'Sarabun',sans-serif;
+    transition:color .15s ease;
+    margin-top:2px;
+  }
+  .add-card:hover{color:var(--teal);}
+  .add-card .plus{font-size:16px;line-height:1;}
+
+  /* results */
+  .results{
+    background:#fff;border:1px solid var(--line);border-radius:var(--radius);
+    padding:12px 12px;margin-bottom:10px;
+    overflow:hidden;
+  }
+  .results h2{
+    font-size:11px;font-family:'IBM Plex Mono',monospace;letter-spacing:.05em;
+    color:var(--ink-soft);text-transform:uppercase;margin:0 0 8px;
+    display:flex;align-items:center;gap:6px;
+  }
+  .best-banner{
+    background:var(--teal-soft);border-radius:9px;padding:9px 12px;margin-bottom:10px;
+    display:flex;align-items:center;gap:10px;min-width:0;
+  }
+  .best-banner .medal{font-size:19px;flex-shrink:0;}
+  .best-banner > div{min-width:0;}
+  .best-banner .name{font-weight:800;font-size:13.5px;color:var(--teal);overflow-wrap:break-word;}
+  .best-banner .detail{font-size:11px;color:#245049;margin-top:1px;overflow-wrap:break-word;}
+
+  .rank-list{display:flex;flex-direction:column;gap:6px;}
+  .rank-row{
+    display:grid;grid-template-columns:20px 1fr auto;gap:8px;align-items:center;
+  }
+  .rank-num{
+    font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:11.5px;
+    color:var(--ink-soft);text-align:center;
+  }
+  .rank-body{min-width:0;}
+  .rank-name{
+    display:flex;justify-content:space-between;gap:6px;font-size:12px;font-weight:600;margin-bottom:3px;
+    min-width:0;
+  }
+  .rank-name .item-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+  .rank-name .price{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:12px;color:var(--ink);flex-shrink:0;white-space:nowrap;}
+  .bar-track{height:6px;background:var(--paper-2);border-radius:999px;overflow:hidden;}
+  .bar-fill{height:100%;border-radius:999px;transition:width .4s ease;}
+  .rank-tag{
+    font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;
+    padding:3px 7px;border-radius:5px;white-space:nowrap;
+    display:inline-flex;align-items:center;gap:3px;
+  }
+  .tag-best{background:var(--teal);color:#fff;box-shadow:0 0 0 2px var(--teal-soft);}
+  .tag-best .crown{font-size:13px;filter:drop-shadow(0 0 2px rgba(245,196,81,.8));}
+  .tag-diff{background:var(--rose-soft);color:var(--rose);}
+
+  .actions{display:flex;gap:10px;align-items:stretch;}
+  button.action{
+    font-family:'Sarabun',sans-serif;font-weight:700;font-size:14px;
+    padding:12px 14px;border-radius:11px;border:1.5px solid var(--line);
+    background:#fff;color:var(--ink);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:7px;
+    flex:1;min-height:48px;
+    transition:transform .1s ease, opacity .15s ease;
+  }
+  button.action:active{transform:scale(.97);}
+  button.action.primary{background:var(--ink);color:#fff;border-color:var(--ink);flex:1;}
+  button.action.primary:hover{opacity:.88;}
+  button.action.danger{
+    background:var(--rose);color:#fff;border-color:var(--rose);
+    flex:1.15;font-size:15px;
+    box-shadow:0 3px 0 0 #8f342e;
+  }
+  button.action.danger:active{box-shadow:0 1px 0 0 #8f342e;transform:translateY(2px) scale(.99);}
+  .copy-ok{color:var(--teal);font-size:12px;font-weight:600;display:none;text-align:center;margin-top:4px;}
+
+  .empty-hint{
+    text-align:center;color:var(--ink-soft);font-size:12.5px;padding:10px 0;
+  }
+
+  footer{text-align:center;color:var(--ink-soft);font-size:10.5px;margin-top:12px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header style="flex-shrink:0;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+      <span class="eyebrow" id="txt-eyebrow">💡 Unit Price</span>
+      <div class="lang-switch" id="langSwitch">
+        <button data-lang="en" class="active">EN</button>
+        <button data-lang="th">TH</button>
+      </div>
+    </div>
+    <h1><span id="txt-titlePre">Calculate </span><span class="accent" id="txt-titleAccent">Best Value</span></h1>
+    <p class="sub" id="txt-subtitle">Enter price and quantity for at least 2 items. We'll calculate unit price and rank them instantly.</p>
+  </header>
+
+  <div class="scroll-area">
+    <div class="items">
+      <div class="col-heads">
+        <span></span>
+        <span id="txt-colName">Item</span>
+        <span class="num" id="txt-colPrice">Price</span>
+        <span class="num" id="txt-colQty">Qty</span>
+        <span id="txt-colUnit">Unit</span>
+        <span class="num" id="txt-colUnitPrice">Price/Unit</span>
+        <span></span>
+      </div>
+      <div id="itemsContainer"></div>
+      <button class="add-card" id="addBtn">
+        <span class="plus">＋</span> <span id="txt-addItem">Add item</span>
+      </button>
+    </div>
+
+    <div class="results" id="resultsBox"></div>
+
+    <button class="action danger" id="resetBtn" style="width:100%;">↺ <span id="txt-resetBtn">Reset All</span></button>
+  </div>
+
+  <div style="flex-shrink:0;">
+    <div class="actions">
+      <button class="action primary" id="copyBtn" style="width:100%;">📋 <span id="txt-copyBtn">Copy Summary</span></button>
+    </div>
+    <span class="copy-ok" id="copyOk"></span>
+  </div>
+
+  <footer style="flex-shrink:0;" id="txt-footer">Everything is calculated in your browser. No data is ever sent anywhere.</footer>
+</div>
+
+<script>
+const COLORS = ['#B6473F','#0D7A6C','#C1791F','#3E6BB0','#7D4CAE','#B0684B','#4C8FA0','#9A6B2F'];
+
+const LANG = {
+  en: {
+    eyebrow: '💡 Unit Price',
+    titlePre: 'Calculate ',
+    titleAccent: 'Best Value',
+    subtitle: "Enter price and quantity for at least 2 items. We'll calculate unit price and rank them instantly.",
+    colName: 'Item', colPrice: 'Price', colQty: 'Qty', colUnit: 'Unit', colUnitPrice: 'Price/Unit',
+    itemPrefix: 'Item',
+    unitFallback: 'unit',
+    addItem: 'Add item',
+    resultsHeading: '📊 Comparison Result',
+    emptyHint: 'Fill in price and quantity for at least 2 items<br>to see the comparison result',
+    bestBannerName: name => `${name} is the best value`,
+    bestBannerDetail: (worst, pct) => `${pct}% better value than ${worst} at the same unit price`,
+    winTag: 'WIN',
+    resetBtn: 'Reset All',
+    copyBtn: 'Copy Summary',
+    copied: 'Copied ✓',
+    footer: 'Everything is calculated in your browser. No data is ever sent anywhere.',
+    confirmReset: 'Clear all data? This cannot be undone.',
+    currency: 'THB',
+    summaryTitle: 'Value Comparison Result',
+    summaryBestLine: rank => rank === 0 ? '  ⭐ Best value' : '',
+    summaryFinal: (best, worst, pct) => `${best} is ${pct}% better value than ${worst}`,
+    noDataSummary: 'Not enough data to compare yet'
+  },
+  th: {
+    eyebrow: '💡 ราคาต่อหน่วย',
+    titlePre: 'คำนวณ',
+    titleAccent: 'ความคุ้มค่า',
+    subtitle: 'กรอกราคาและปริมาณของสินค้า อย่างน้อย 2 รายการ ระบบจะคำนวณราคาต่อหน่วยและจัดอันดับให้ทันที',
+    colName: 'ชื่อสินค้า', colPrice: 'ราคา', colQty: 'ปริมาณ', colUnit: 'หน่วย', colUnitPrice: 'บาท/หน่วย',
+    itemPrefix: 'สินค้า',
+    unitFallback: 'หน่วย',
+    addItem: 'เพิ่มรายการ',
+    resultsHeading: '📊 ผลลัพธ์การเปรียบเทียบ',
+    emptyHint: 'กรอกราคาและปริมาณให้ครบอย่างน้อย 2 รายการ<br>เพื่อดูผลการเปรียบเทียบความคุ้มค่า',
+    bestBannerName: name => `${name} คุ้มค่าที่สุด`,
+    bestBannerDetail: (worst, pct) => `คุ้มกว่า ${worst} อยู่ ${pct}% ที่ราคาต่อหน่วยเท่ากัน`,
+    winTag: 'ชนะ',
+    resetBtn: 'รีเซ็ตทั้งหมด',
+    copyBtn: 'คัดลอกผลสรุป',
+    copied: 'คัดลอกแล้ว ✓',
+    footer: 'คำนวณทั้งหมดในเบราว์เซอร์ของคุณ ไม่มีข้อมูลถูกส่งออกไปที่ใด',
+    confirmReset: 'ล้างข้อมูลทั้งหมดใช่ไหม? การกระทำนี้ย้อนกลับไม่ได้',
+    currency: 'บาท',
+    summaryTitle: 'ผลเปรียบเทียบความคุ้มค่า',
+    summaryBestLine: rank => rank === 0 ? '  ⭐ คุ้มสุด' : '',
+    summaryFinal: (best, worst, pct) => `${best} คุ้มกว่า ${worst} อยู่ ${pct}%`,
+    noDataSummary: 'ยังกรอกข้อมูลไม่ครบสำหรับเปรียบเทียบ'
+  }
+};
+
+let lang = 'en';
+
+function t(){ return LANG[lang]; }
+
+function applyStaticText(){
+  const L = t();
+  document.getElementById('txt-eyebrow').textContent = L.eyebrow;
+  document.getElementById('txt-titlePre').textContent = L.titlePre;
+  document.getElementById('txt-titleAccent').textContent = L.titleAccent;
+  document.getElementById('txt-subtitle').textContent = L.subtitle;
+  document.getElementById('txt-colName').textContent = L.colName;
+  document.getElementById('txt-colPrice').textContent = L.colPrice;
+  document.getElementById('txt-colQty').textContent = L.colQty;
+  document.getElementById('txt-colUnit').textContent = L.colUnit;
+  document.getElementById('txt-colUnitPrice').textContent = L.colUnitPrice;
+  document.getElementById('txt-addItem').textContent = L.addItem;
+  document.getElementById('txt-resetBtn').textContent = L.resetBtn;
+  document.getElementById('txt-copyBtn').textContent = L.copyBtn;
+  document.getElementById('txt-footer').textContent = L.footer;
+  document.querySelectorAll('#langSwitch button').forEach(b => {
+    b.classList.toggle('active', b.dataset.lang === lang);
+  });
+}
+
+let items = [
+  { id: 1, name: '', price: '', qty: '', unit: '' },
+  { id: 2, name: '', price: '', qty: '', unit: '' }
+];
+let nextId = 3;
+
+function letterFor(index){
+  return String.fromCharCode(65 + (index % 26));
+}
+
+function fallbackName(idx){
+  return t().itemPrefix + ' ' + letterFor(idx);
+}
+
+function unitPrice(item){
+  const p = parseFloat(item.price);
+  const q = parseFloat(item.qty);
+  if(!isFinite(p) || !isFinite(q) || q <= 0) return null;
+  return p / q;
+}
+
+function bestItemId(){
+  const valid = items
+    .map(item => ({ item, up: unitPrice(item) }))
+    .filter(x => x.up !== null);
+  if(valid.length < 2) return null;
+  valid.sort((a,b) => a.up - b.up);
+  return valid[0].item.id;
+}
+
+function renderItems(){
+  const container = document.getElementById('itemsContainer');
+  container.innerHTML = '';
+  items.forEach((item, idx) => {
+    const color = COLORS[idx % COLORS.length];
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.dataset.rowId = item.id;
+    row.innerHTML = `
+      <span class="dot" style="background:${color}">${letterFor(idx)}</span>
+      <input type="text" placeholder="${fallbackName(idx)}" data-field="name" data-id="${item.id}" value="${escapeAttr(item.name)}">
+      <input type="number" inputmode="decimal" placeholder="0" min="0" data-field="price" data-id="${item.id}" value="${escapeAttr(item.price)}">
+      <input type="number" inputmode="decimal" placeholder="0" min="0" data-field="qty" data-id="${item.id}" value="${escapeAttr(item.qty)}">
+      <input type="text" placeholder="${t().unitFallback}" data-field="unit" data-id="${item.id}" value="${escapeAttr(item.unit)}">
+      <span class="up-cell">
+        <span class="win-icon" id="win-${item.id}" style="display:none">👑</span>
+        <span class="up-readout" id="up-${item.id}">—</span>
+      </span>
+      ${items.length > 2
+        ? `<button class="rm-btn" data-remove="${item.id}" title="${lang==='th' ? 'ลบรายการนี้' : 'Remove item'}">✕</button>`
+        : `<span class="rm-spacer"></span>`}
+    `;
+    container.appendChild(row);
+  });
+
+  container.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', onFieldChange);
+  });
+  container.querySelectorAll('[data-remove]').forEach(btn => {
+    btn.addEventListener('click', () => removeItem(parseInt(btn.dataset.remove)));
+  });
+
+  items.forEach(updateSingleUnitPrice);
+  updateBestHighlight();
+}
+
+function updateBestHighlight(){
+  const bestId = bestItemId();
+  document.querySelectorAll('.item-row').forEach(row => {
+    const id = parseInt(row.dataset.rowId);
+    const isBest = bestId !== null && id === bestId;
+    row.classList.toggle('is-best', isBest);
+    const winIcon = document.getElementById('win-' + id);
+    if(winIcon) winIcon.style.display = isBest ? 'inline' : 'none';
+  });
+}
+
+function escapeAttr(v){
+  return String(v ?? '').replace(/"/g,'&quot;');
+}
+
+function onFieldChange(e){
+  const id = parseInt(e.target.dataset.id);
+  const field = e.target.dataset.field;
+  const item = items.find(i => i.id === id);
+  if(!item) return;
+  item[field] = e.target.value;
+  updateSingleUnitPrice(item);
+  updateBestHighlight();
+  renderResults();
+}
+
+function updateSingleUnitPrice(item){
+  const el = document.getElementById('up-' + item.id);
+  if(!el) return;
+  const up = unitPrice(item);
+  if(up === null){ el.textContent = '—'; return; }
+  el.textContent = up.toFixed(2);
+  el.title = up.toFixed(4) + ' ' + t().currency + '/' + (item.unit || t().unitFallback);
+}
+
+function addItem(){
+  items.push({ id: nextId++, name: '', price: '', qty: '', unit: items[0]?.unit || '' });
+  renderItems();
+  renderResults();
+}
+
+function removeItem(id){
+  if(items.length <= 2) return;
+  items = items.filter(i => i.id !== id);
+  renderItems();
+  renderResults();
+}
+
+function resetAll(){
+  items = [
+    { id: nextId++, name: '', price: '', qty: '', unit: '' },
+    { id: nextId++, name: '', price: '', qty: '', unit: '' }
+  ];
+  renderItems();
+  renderResults();
+  document.getElementById('copyOk').style.display = 'none';
+}
+
+function renderResults(){
+  const L = t();
+  const box = document.getElementById('resultsBox');
+  const valid = items
+    .map((item, idx) => ({ item, idx, up: unitPrice(item) }))
+    .filter(x => x.up !== null);
+
+  if(valid.length < 2){
+    box.innerHTML = `
+      <h2>${L.resultsHeading}</h2>
+      <div class="empty-hint">${L.emptyHint}</div>
+    `;
+    return;
+  }
+
+  valid.sort((a, b) => a.up - b.up);
+  const best = valid[0];
+  const worst = valid[valid.length - 1];
+  const maxUp = worst.up;
+
+  const bestName = best.item.name || fallbackName(best.idx);
+  const worstName = worst.item.name || fallbackName(worst.idx);
+  const savingPct = ((worst.up - best.up) / worst.up * 100).toFixed(1);
+
+  let rows = '';
+  valid.forEach((x, rank) => {
+    const name = x.item.name || fallbackName(x.idx);
+    const color = COLORS[x.idx % COLORS.length];
+    const widthPct = maxUp > 0 ? (x.up / maxUp * 100) : 0;
+    const diffFromBest = rank === 0 ? null : ((x.up - best.up) / x.up * 100).toFixed(1);
+    rows += `
+      <div class="rank-row">
+        <div class="rank-num">${rank + 1}</div>
+        <div class="rank-body">
+          <div class="rank-name">
+            <span class="item-name">${escapeHtml(name)}</span>
+            <span class="price">${x.up.toFixed(2)} ${L.currency}/${escapeHtml(x.item.unit || L.unitFallback)}</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:${widthPct}%;background:${color}"></div></div>
+        </div>
+        <div>
+          ${rank === 0
+            ? `<span class="rank-tag tag-best"><span class="crown">👑</span>${L.winTag}</span>`
+            : `<span class="rank-tag tag-diff">+${diffFromBest}%</span>`}
+        </div>
+      </div>
+    `;
+  });
+
+  box.innerHTML = `
+    <h2>${L.resultsHeading}</h2>
+    <div class="best-banner">
+      <span class="medal">🏆</span>
+      <div>
+        <div class="name">${escapeHtml(L.bestBannerName(bestName))}</div>
+        <div class="detail">${escapeHtml(L.bestBannerDetail(worstName, savingPct))}</div>
+      </div>
+    </div>
+    <div class="rank-list">${rows}</div>
+  `;
+}
+
+function escapeHtml(str){
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function buildSummaryText(){
+  const L = t();
+  const valid = items
+    .map((item, idx) => ({ item, idx, up: unitPrice(item) }))
+    .filter(x => x.up !== null)
+    .sort((a,b) => a.up - b.up);
+
+  if(valid.length < 2) return L.noDataSummary;
+
+  let lines = [L.summaryTitle, '—'.repeat(20)];
+  valid.forEach((x, rank) => {
+    const name = x.item.name || fallbackName(x.idx);
+    lines.push(`${rank+1}. ${name}: ${x.up.toFixed(2)} ${L.currency}/${x.item.unit || L.unitFallback}${L.summaryBestLine(rank)}`);
+  });
+  const best = valid[0], worst = valid[valid.length-1];
+  const pct = ((worst.up - best.up) / worst.up * 100).toFixed(1);
+  lines.push('—'.repeat(20));
+  lines.push(L.summaryFinal(best.item.name || fallbackName(best.idx), worst.item.name || fallbackName(worst.idx), pct));
+  return lines.join('\n');
+}
+
+document.getElementById('addBtn').addEventListener('click', addItem);
+document.getElementById('resetBtn').addEventListener('click', () => {
+  const hasData = items.some(i => i.name || i.price || i.qty);
+  if(hasData && !confirm(t().confirmReset)) return;
+  resetAll();
+});
+document.getElementById('copyBtn').addEventListener('click', async () => {
+  const text = buildSummaryText();
+  try{
+    await navigator.clipboard.writeText(text);
+  }catch(e){
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+  const ok = document.getElementById('copyOk');
+  ok.textContent = t().copied;
+  ok.style.display = 'block';
+  setTimeout(() => ok.style.display = 'none', 1800);
+});
+document.querySelectorAll('#langSwitch button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if(btn.dataset.lang === lang) return;
+    lang = btn.dataset.lang;
+    applyStaticText();
+    renderItems();
+    renderResults();
+  });
+});
+
+applyStaticText();
+renderItems();
+renderResults();
+</script>
+</body>
+</html>
